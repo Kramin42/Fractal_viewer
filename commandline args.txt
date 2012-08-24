@@ -1,0 +1,21 @@
+
+-IW ### image width (type int)
+
+-IH ### image height (type int)
+
+-CX ### x position of center of screen (type double)
+
+-CY ### y position of center of screen (type double)
+
+-MI ### maximum iteration (type int)
+
+-CM ### color change multiplier (type int)
+
+-TP ### transformation power (type double)
+
+-ZM ### zoom (type double)
+
+-DD #   distance divide (0 or 1) (make brightness fade out further away from the fractal)
+
+-DA ### distance divide constant A (double between 0 and 1)
+-DB ### distance divide constant B (double between 0 and 1)

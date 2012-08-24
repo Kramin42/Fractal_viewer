@@ -1,0 +1,1 @@
+This is my fractal viewer project. It can explore the Mandelbrot set and save command line arguments that can be used to render an image with my Fractal_saver program.
