@@ -19,3 +19,14 @@
 	<sstream>
 	<cmath>
 
+1345861938 source:f:\documents and settings\cameron\my documents\github\fractal_viewer\main.cpp
+	"SDL.h"
+	"SDL_gfxPrimitives.h"
+	"SDL_ttf.h"
+	<string>
+	<iostream>
+	<iomanip>
+	<fstream>
+	<sstream>
+	<cmath>
+

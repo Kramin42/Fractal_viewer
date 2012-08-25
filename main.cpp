@@ -74,6 +74,9 @@ stringstream out;
 
 Uint32 data[SCREEN_WIDTH*SCREEN_HEIGHT];
 
+double mus[SCREEN_WIDTH*SCREEN_HEIGHT];
+bool isblack[SCREEN_WIDTH*SCREEN_HEIGHT];
+
 //default values
 double M_centerX = -0.75;
 double M_centerY = 0.0;
@@ -169,21 +172,13 @@ void save()
     myfile.close();
 }
 
-void drawMandelbrot(int s, int e)
+void calcMandelbrot(int s, int e)
 {
     double x0,y0;
     double x,y;
-    //double ckx,cky; //for periodicity checking
     double xsq,ysq;
     double mu;
-    double divider;
-    double q;
     int iteration;
-    //int period; //for periodicity checking
-    //bool lastWasBlack = false; //for periodicity checking
-    Uint32 color;
-    //float H,S,B;
-    double R,G,B;
 
     //Algorithm for Mandelbrot set
     for (i=s;i<e;i++){
@@ -197,72 +192,54 @@ void drawMandelbrot(int s, int e)
             ysq=0;
 
             iteration = 0;
-            //period=8; //for periodicity checking
+            do
+            {
+                iteration++;
+                y = 2*x*y + y0;
+                x = xsq - ysq + x0;
 
-            if ((x0+1)*(x0+1)+y0*y0<1.0f/16.0f){
-                iteration = M_maxIteration;
+                xsq=x*x;
+                ysq=y*y;
             }
-            q = (x0-0.25)*(x0-0.25)+y0*y0;
-            if (q*(q+(x0-0.25))<y0*y0/4.0f){
-                iteration = M_maxIteration;
-            }
-
-//            if (lastWasBlack){
-//                do
-//                {
-//                    ckx=x;cky=y;
-//                    period+=period;
-//                    if (period>M_maxIteration){period=M_maxIteration;}
-//
-//                    for (; iteration<period; iteration++){
-//                        xtemp = xsq - ysq + x0;
-//                        y = 2*x*y + y0;
-//
-//                        x = xtemp;
-//
-//                        xsq=x*x;
-//                        ysq=y*y;
-//
-//                        if (xsq + ysq > 9.0f || iteration >= M_maxIteration){
-//                            period=M_maxIteration;
-//                            break;
-//                        }
-//
-//                        if (x==ckx && y==cky) {
-//                            cout<<"found cycle, exiting at iteration: "<<iteration<<endl;
-//                            period=M_maxIteration;
-//                            iteration=M_maxIteration;
-//                            break;
-//                        }
-//                    }
-//                }
-//                while (period!=M_maxIteration);
-//            } else {
-                do
-                {
-                    iteration++;
-                    y = 2*x*y + y0;
-                    x = xsq - ysq + x0;
-
-                    xsq=x*x;
-                    ysq=y*y;
-                }
-                while(xsq + ysq < 9.0f && iteration < M_maxIteration);
-//            }
-
+            while(xsq + ysq < 9.0f && iteration < M_maxIteration);
 
             if (iteration == M_maxIteration) {
-                color = 0xFF000000;
-                //lastWasBlack=true;
+                //color = 0xFF000000;
+                isblack[w*j+i]=true;
             }
             else {
-                //lastWasBlack=false;
+                isblack[w*j+i]=false;
                 mu = (double)iteration + 1 - log(log(sqrt(x*x + y*y)))/log(2.0);
-                mu = mu/(double)M_maxIteration;\
+                mu = mu/(double)M_maxIteration;
                 if (mu>=1.0f)
                 {
                     cout<<mu<<endl;
                 }
+                mus[j*w+i]=mu;
+
+
+                //color = 0xFFFFFFFF;
+            }
+
+            //imageG2D.setColor(color);
+            //imageG2D.drawLine(i, j, i, j);
+        }
+    }
+}
+
+void drawMandelbrot(int s, int e)
+{
+    double mu;
+    double divider;
+    Uint32 color;
+    double R,G,B;
+
+    for (i=s;i<e;i++){
+        for (j=0;j<h;j++){
+            if (isblack[j*w+i]){
+                color=0xFF000000;
+            } else {
+                mu = mus[j*w+i];
                 mu=pow(mu,transformPower);
                 divider  = mu;
                 mu = mu*M_ColMult;
@@ -292,11 +269,8 @@ void drawMandelbrot(int s, int e)
                 }
 
                 color = getUintfromRGB((Uint8)(R*255),(Uint8)(G*255),(Uint8)(B*255));
-                //color = 0xFFFFFFFF;
             }
             data[j*w + i]=color;
-            //imageG2D.setColor(color);
-            //imageG2D.drawLine(i, j, i, j);
         }
     }
 }
@@ -494,13 +468,13 @@ int main( int argc, char *argv[] )
                     case SDLK_ESCAPE:
                         quit = true;
                         break;
-                    case SDLK_r:
-                        M_centerX = -0.75;
-                        M_centerY = 0;
-                        M_zoom = 1;
-                        redraw = true;
-                        start = 0;
-                        end = 0;
+                    case SDLK_r://its annoying when you accidentily press r so I removed it
+                        //M_centerX = -0.75;
+                        //M_centerY = 0;
+                        //M_zoom = 1;
+                        //redraw = true;
+                        //start = 0;
+                        //end = 0;
                         break;
                     case SDLK_z:
                         M_zoom /=1.0f+keyChangeMod;
@@ -600,6 +574,7 @@ int main( int argc, char *argv[] )
 		if (keyPressed)
 		{
             renderText();
+            drawMandelbrot(0,w);
 		}
 
 		if (redraw)
@@ -612,6 +587,7 @@ int main( int argc, char *argv[] )
 		        redraw = false;
 		        //return 0; //uncomment to make the program quit after running once
 		    }
+		    calcMandelbrot(start,end);
 		    drawMandelbrot(start,end);
 		}
 
