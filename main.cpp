@@ -4,6 +4,7 @@
 #include "SDL_ttf.h"
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <cmath>
@@ -164,7 +165,7 @@ void save()
 {
     ofstream myfile;
     myfile.open ("saves.txt",fstream::app);
-    myfile << "-CX "<<M_centerX<<" -CY "<<M_centerY<<" -MI "<<M_maxIteration<<" -CM "<<M_ColMult<<" -ZM "<<M_zoom<<" -TP "<<transformPower<<" -DD "<<distanceDivide<<" -DA "<<ddA<<" -DB "<<ddB<<endl;
+    myfile << fixed << setprecision (16) <<"-CX "<<M_centerX<<" -CY "<<M_centerY<<" -MI "<<M_maxIteration<<" -CM "<<M_ColMult<<" -ZM "<<M_zoom<<" -TP "<<transformPower<<" -DD "<<distanceDivide<<" -DA "<<ddA<<" -DB "<<ddB<<endl;
     myfile.close();
 }
 
