@@ -83,7 +83,8 @@ double M_centerY = 0.0;
 double M_zoom = 1.0;
 int M_maxIteration = 200;
 int M_ColMult = 1;
-double M_bailoutRad = 3;
+double M_bailoutRad = 16.0;
+double BRsq = M_bailoutRad*M_bailoutRad;
 double transformPower = 0.4;
 bool distanceDivide = false;
 double ddA = 0.4;
@@ -201,7 +202,7 @@ void calcMandelbrot(int s, int e)
                 xsq=x*x;
                 ysq=y*y;
             }
-            while(xsq + ysq < 9.0f && iteration < M_maxIteration);
+            while(xsq + ysq < BRsq && iteration < M_maxIteration);
 
             if (iteration == M_maxIteration) {
                 //color = 0xFF000000;
@@ -209,7 +210,7 @@ void calcMandelbrot(int s, int e)
             }
             else {
                 isblack[w*j+i]=false;
-                mu = (double)iteration + 1 - log(log(sqrt(x*x + y*y)))/log(2.0);
+                mu = (double)iteration + 1.0 - log(log(sqrt(x*x + y*y)))/log(2.0);
                 mu = mu/(double)M_maxIteration;
                 if (mu>=1.0f)
                 {
