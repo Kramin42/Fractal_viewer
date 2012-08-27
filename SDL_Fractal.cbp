@@ -36,6 +36,8 @@
 			</Target>
 		</Build>
 		<Compiler>
+			<Add option="-march=pentium4" />
+			<Add option="-O" />
 			<Add option="-Wall" />
 		</Compiler>
 		<Linker>
