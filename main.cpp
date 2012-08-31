@@ -14,31 +14,40 @@ using namespace std;
 //function prototypes
 
 
-//Screen attributes
+//Default screen attributes
+const int btmBarH = 200;
 const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 600;
+const int SCREEN_HEIGHT = 600+btmBarH;
 const int SCREEN_BPP = 32;
+const bool  FULLSCREEN = false;
+const int w=800,h=600;
+const double wd=w,hd=h;
+const int colBarH = 50;
 
 // Get the current video hardware information
 //const SDL_VideoInfo* VideoInfo = SDL_GetVideoInfo();
 
 //other constants
 const float PI = atan(1.0f) * 4.0f;
-const bool  FULLSCREEN = false;
 
 //usefull vars
 int i,j;
-int w=SCREEN_WIDTH,h=SCREEN_HEIGHT;
-double wd=w,hd=h;
 
 int start,end;
-int widthPerFrame = SCREEN_WIDTH/100;
-bool redraw;
+int widthPerFrame = w/100;
+bool reCalc;
+bool reTransform;
+bool reDraw;
+
+bool keyPressed;
 
 int mx,my,mdownx,mdowny;
-bool dragging = false;
+//bool dragging = false;
+bool draggingZoomBox = false;
 
 double x,y,ratioX,ratioY;
+
+int saves = 0;
 
 //Event handler
 SDL_Event event;
@@ -66,16 +75,23 @@ SDL_Surface *textDDB = NULL;
 SDL_Surface *textOther = NULL;
 SDL_Surface *textLeftShift = NULL;
 SDL_Surface *textLeftCtrl = NULL;
+SDL_Surface *textSaves = NULL;
 
 SDL_Surface *text = NULL;
 
 string s;
 stringstream out;
 
-Uint32 data[SCREEN_WIDTH*SCREEN_HEIGHT];
+Uint32 data[w*h];
 
-double mus[SCREEN_WIDTH*SCREEN_HEIGHT];
-bool isblack[SCREEN_WIDTH*SCREEN_HEIGHT];
+Uint32 colBarR[w];
+Uint32 colBarG[w];
+Uint32 colBarB[w];
+Uint32 colBar[w];
+
+double initialMus[w*h];
+double finalMus[w*h];
+bool isblack[w*h];
 
 //default values
 double M_centerX = -0.75;
@@ -89,6 +105,10 @@ double transformPower = 0.4;
 bool distanceDivide = false;
 double ddA = 0.4;
 double ddB = 0.5;
+
+double Rs=0.4,Rm=0.5,Re=1;//start, middle, and end values for the color calculation
+double Gs=0.3,Gm=0.5,Ge=0.7;
+double Bs=0,Bm=0.5,Be=0.6;
 //    int iValue = (int) value;
 //    if (((double) rand()/(double) RAND_MAX)>(value - (double) iValue))
 //    {
@@ -113,12 +133,22 @@ Uint32 getUintfromRGB(Uint8 r, Uint8 g, Uint8 b)
 {
     return b + (g<<8) + (r<<16);
 }
-//    //Convert the pixels to 32 bit
-//    Uint32 *pixels = (Uint32 *)surface->pixels;
-//
-//    //Set the pixel
-//    pixels[ ( y * surface->w ) + x ] = pixel;
-//}
+
+void calcColBar()
+{
+    double mu = 0;
+    double R,G,B;
+    for (i=0;i<w;i++){
+        mu = ((double) i)/wd;
+        R = getColorValue(mu,Rs,Rm,Re);
+        G = getColorValue(mu,Gs,Gm,Ge);
+        B = getColorValue(mu,Bs,Bm,Be);
+        colBarR[i]=getUintfromRGB((Uint8)(R*255),0,0);
+        colBarG[i]=getUintfromRGB(0,(Uint8)(G*255),0);
+        colBarB[i]=getUintfromRGB(0,0,(Uint8)(B*255));
+        colBar[i]=getUintfromRGB((Uint8)(R*255),(Uint8)(G*255),(Uint8)(B*255));
+    }
+}
 
 void renderText()
 {
@@ -158,6 +188,10 @@ void renderText()
     out << "change /10: left Ctrl";
     s = out.str();
     textLeftCtrl = TTF_RenderText_Solid(font,s.c_str(),textColor);
+    out.str("");
+    out << "Num of Saves: "<<saves;
+    s = out.str();
+    textSaves = TTF_RenderText_Solid(font,s.c_str(),textColor);
 }
 
 void checkKeys()
@@ -171,6 +205,7 @@ void save()
     myfile.open ("saves.txt",fstream::app);
     myfile << fixed << setprecision (16) <<"-CX "<<M_centerX<<" -CY "<<M_centerY<<" -MI "<<M_maxIteration<<" -CM "<<M_ColMult<<" -ZM "<<M_zoom<<" -TP "<<transformPower<<" -DD "<<distanceDivide<<" -DA "<<ddA<<" -DB "<<ddB<<endl;
     myfile.close();
+    saves++;
 }
 
 void calcMandelbrot(int s, int e)
@@ -216,7 +251,7 @@ void calcMandelbrot(int s, int e)
                 {
                     cout<<mu<<endl;
                 }
-                mus[j*w+i]=mu;
+                initialMus[j*w+i]=mu;
 
 
                 //color = 0xFFFFFFFF;
@@ -224,6 +259,22 @@ void calcMandelbrot(int s, int e)
 
             //imageG2D.setColor(color);
             //imageG2D.drawLine(i, j, i, j);
+        }
+    }
+}
+
+void transformMus(int s, int e)
+{
+    double mu;
+
+    for (i=s;i<e;i++){
+        for (j=0;j<h;j++){
+            if (isblack[j*w+i]){
+                continue;
+            } else {
+                mu = initialMus[j*w+i];
+                finalMus[j*w+i] =pow(mu,transformPower);
+            }
         }
     }
 }
@@ -240,8 +291,7 @@ void drawMandelbrot(int s, int e)
             if (isblack[j*w+i]){
                 color=0xFF000000;
             } else {
-                mu = mus[j*w+i];
-                mu=pow(mu,transformPower);
+                mu = finalMus[j*w+i];
                 divider  = mu;
                 mu = mu*M_ColMult;
                 mu = mu - floor(mu);
@@ -252,9 +302,9 @@ void drawMandelbrot(int s, int e)
                 G=0;
                 B=0;
 
-                B = getColorValue(mu,0,0.5,0.6);
-                G = getColorValue(mu,0.3,0.5,0.7);
-                R = getColorValue(mu,0.4,0.5,1);
+                R = getColorValue(mu,Rs,Rm,Re);
+                G = getColorValue(mu,Gs,Gm,Ge);
+                B = getColorValue(mu,Bs,Bm,Be);
 
                 if (distanceDivide)
                 {
@@ -289,7 +339,6 @@ void apply_surface( int x, int y, SDL_Surface* source, SDL_Surface* destination,
     SDL_BlitSurface( source, clip, destination, &offset );
 }
 
-/* render the scene */
 void draw() {
     //Convert the pixels to 32 bit
     Uint32 *pixels = (Uint32 *)screen->pixels;
@@ -297,6 +346,26 @@ void draw() {
     for (i=0;i<w*h;i++)
     {
         pixels[i]=data[i];
+    }
+
+    for (i=0;i<w;i++)
+    {
+        for (j=h;j<h+colBarH;j++)//red
+        {
+            pixels[w*j+i]=colBarR[i];
+        }
+        for (j=h+colBarH;j<h+2*colBarH;j++)//green
+        {
+            pixels[w*j+i]=colBarG[i];
+        }
+        for (j=h+2*colBarH;j<h+3*colBarH;j++)//blue
+        {
+            pixels[w*j+i]=colBarB[i];
+        }
+        for (j=h+3*colBarH;j<h+4*colBarH;j++)//mixed
+        {
+            pixels[w*j+i]=colBar[i];
+        }
     }
 
     apply_surface(0,0,textMaxIteration,screen);
@@ -308,13 +377,19 @@ void draw() {
     apply_surface(0,6*fontSize,textOther,screen);
     apply_surface(0,7*fontSize,textLeftShift,screen);
     apply_surface(0,8*fontSize,textLeftCtrl,screen);
+    apply_surface(0,9*fontSize,textSaves,screen);
 
-    if (dragging)
+    if (draggingZoomBox)
     {
-        rectangleColor(screen,2*mdownx-mx,2*mdowny-my,mx,my,0xFFFFFFFF);
-        lineColor(screen,2*mdownx-mx,mdowny,mx,mdowny,0xFFFFFFFF);
-        lineColor(screen,mdownx,2*mdowny-my,mdownx,my,0xFFFFFFFF);
+        rectangleColor(screen,2*mdownx-mx,2*mdowny-my,mx,my,0xFFFFFFA0);
+        lineColor(screen,2*mdownx-mx,mdowny,mx,mdowny,0xFFFFFF60);
+        lineColor(screen,mdownx,2*mdowny-my,mdownx,my,0xFFFFFF60);
+        boxColor(screen,2*mdownx-mx,2*mdowny-my,mx,my,0x0000FF40);
     }
+
+    //boxColor(screen,0,h,w,h+btmBarH-colBarH,0x000000FF);
+
+
 }
 
 bool init()
@@ -348,7 +423,7 @@ bool init()
     //SDL_WM_GrabInput( SDL_GRAB_ON);
 
     //Set caption
-    SDL_WM_SetCaption( "SDL Fractal", NULL );
+    SDL_WM_SetCaption( "Fractal Viewer", NULL );
 
     //Open the font
     font = TTF_OpenFont( "LiberationSans.ttf", fontSize );
@@ -416,17 +491,6 @@ int main( int argc, char *argv[] )
                 ddB = atof(argv[i+1]);
                 cout << "DB: "<<ddB<<endl;
             }
-            else if(!strcmp(argv[i], "-IW")){
-                w = atoi(argv[i+1]);
-                wd = w;
-                cout << "IW: "<<w<<endl;
-            }
-            else if(!strcmp(argv[i], "-IH")){
-                h = atoi(argv[i+1]);
-                hd = h;
-                cout << "IH: "<<h<<endl;
-            }
-
     }
 
     //Quit flag
@@ -440,7 +504,9 @@ int main( int argc, char *argv[] )
 
     keys = SDL_GetKeyState(NULL);
 
-    redraw = true;
+    reCalc = true;
+
+    calcColBar();
 
     //drawMandelbrot(0,w);
     //cout<<"done"<<endl;
@@ -448,7 +514,7 @@ int main( int argc, char *argv[] )
 	//main loop
 	while( quit == false )
 	{
-	    bool keyPressed = false;
+	    keyPressed = false;
         //While there are events to handle
 		while( SDL_PollEvent( &event ) )
 		{
@@ -463,7 +529,7 @@ int main( int argc, char *argv[] )
             }
             else if (event.type == SDL_KEYDOWN)
             {
-                keyPressed = true;
+                keyPressed=true;
                 switch (event.key.keysym.sym)
                 {
                     case SDLK_ESCAPE:
@@ -479,12 +545,12 @@ int main( int argc, char *argv[] )
                         break;
                     case SDLK_z:
                         M_zoom /=1.0f+keyChangeMod;
-                        redraw = true;
+                        reCalc = true;
                         start = 0;
                         end = 0;
                         break;
                     case SDLK_SPACE:
-                        redraw = true;
+                        reCalc = true;
                         start = 0;
                         end = 0;
                         break;
@@ -498,30 +564,41 @@ int main( int argc, char *argv[] )
                         break;
                     case SDLK_w:
                         M_ColMult++;
+                        reDraw = true;
                         break;
                     case SDLK_s:
                         M_ColMult--;
+                        reDraw = true;
                         break;
                     case SDLK_e:
                         transformPower+=0.01*keyChangeMod;
+                        reDraw = true;
+                        reTransform=true;
                         break;
                     case SDLK_d:
                         transformPower-=0.01*keyChangeMod;
+                        reDraw = true;
+                        reTransform=true;
                         break;
                     case SDLK_t:
                         ddA+=0.01*keyChangeMod;
+                        reDraw = true;
                         break;
                     case SDLK_g:
                         ddA-=0.01*keyChangeMod;
+                        reDraw = true;
                         break;
                     case SDLK_y:
                         ddB+=0.01*keyChangeMod;
+                        reDraw = true;
                         break;
                     case SDLK_h:
                         ddB-=0.01*keyChangeMod;
+                        reDraw = true;
                         break;
                     case SDLK_c:
                         distanceDivide=!distanceDivide;
+                        reDraw = true;
                         break;
                     case SDLK_x:
                         save();
@@ -533,18 +610,21 @@ int main( int argc, char *argv[] )
             {
                 mx = event.motion.x;
                 my = event.motion.y;
+                if (draggingZoomBox && my>=h) my=h-1;
             }
             else if (event.type == SDL_MOUSEBUTTONDOWN)
             {
                 mdownx = event.button.x;
                 mdowny = event.button.y;
-                dragging = true;
+                //dragging = true;
+                if (mdowny<h) draggingZoomBox=true;
             }
             else if (event.type == SDL_MOUSEBUTTONUP)
             {
                 mx = event.button.x;
                 my = event.button.y;
-                if (mx>mdownx && my>mdowny)
+                if (draggingZoomBox && my>=h) my=h-1;
+                if (mx>mdownx && my>mdowny && draggingZoomBox)
                 {
                     x = (((double) mdownx)/wd)*(2.0/M_zoom)*(wd/hd) - ((1.0/M_zoom)*(wd/hd)-M_centerX);
                     y = -((((double) mdowny)/hd)*(2.0/M_zoom) - ((1.0/M_zoom)+M_centerY));
@@ -564,31 +644,42 @@ int main( int argc, char *argv[] )
                     M_centerX = x;
                     M_centerY = y;
 
-                    redraw = true;
+                    reCalc = true;
                     start = 0;
                     end = 0;
                 }
-                dragging = false;
+                draggingZoomBox = false;
             }
 		}
 
-		if (keyPressed)
-		{
+        if (keyPressed)
+        {
             renderText();
+            keyPressed=false;
+        }
+
+		if (reDraw)
+		{
+            if (reTransform){
+                transformMus(0,w);
+                reTransform=false;
+            }
             drawMandelbrot(0,w);
+            reDraw=false;
 		}
 
-		if (redraw)
+		if (reCalc)
 		{
 		    start = end;
 		    end = start + widthPerFrame;
 		    if (end>w)
 		    {
 		        end = w;
-		        redraw = false;
+		        reCalc = false;
 		        //return 0; //uncomment to make the program quit after running once
 		    }
 		    calcMandelbrot(start,end);
+		    transformMus(start,end);
 		    drawMandelbrot(start,end);
 		}
 
