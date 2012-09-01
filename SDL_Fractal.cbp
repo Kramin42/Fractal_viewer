@@ -47,6 +47,8 @@
 			<Add library="SDL_gfx_VS2008" />
 			<Add library="SDL_ttf" />
 		</Linker>
+		<Unit filename="Slider.cpp" />
+		<Unit filename="Slider.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />

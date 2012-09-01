@@ -9,6 +9,8 @@
 #include <sstream>
 #include <cmath>
 
+#include "Slider.h"
+
 using namespace std;
 
 //function prototypes
@@ -109,6 +111,9 @@ double ddB = 0.5;
 double Rs=0.4,Rm=0.5,Re=1;//start, middle, and end values for the color calculation
 double Gs=0.3,Gm=0.5,Ge=0.7;
 double Bs=0,Bm=0.5,Be=0.6;
+
+Slider sliders[3];
+
 //    int iValue = (int) value;
 //    if (((double) rand()/(double) RAND_MAX)>(value - (double) iValue))
 //    {
@@ -140,9 +145,9 @@ void calcColBar()
     double R,G,B;
     for (i=0;i<w;i++){
         mu = ((double) i)/wd;
-        R = getColorValue(mu,Rs,Rm,Re);
-        G = getColorValue(mu,Gs,Gm,Ge);
-        B = getColorValue(mu,Bs,Bm,Be);
+        R = getColorValue(mu,sliders[0].bars[0],sliders[0].bars[1],sliders[0].bars[2]);
+        G = getColorValue(mu,sliders[1].bars[0],sliders[1].bars[1],sliders[1].bars[2]);
+        B = getColorValue(mu,sliders[2].bars[0],sliders[2].bars[1],sliders[2].bars[2]);
         colBarR[i]=getUintfromRGB((Uint8)(R*255),0,0);
         colBarG[i]=getUintfromRGB(0,(Uint8)(G*255),0);
         colBarB[i]=getUintfromRGB(0,0,(Uint8)(B*255));
@@ -302,9 +307,12 @@ void drawMandelbrot(int s, int e)
                 G=0;
                 B=0;
 
-                R = getColorValue(mu,Rs,Rm,Re);
-                G = getColorValue(mu,Gs,Gm,Ge);
-                B = getColorValue(mu,Bs,Bm,Be);
+//                R = getColorValue(mu,Rs,Rm,Re);
+//                G = getColorValue(mu,Gs,Gm,Ge);
+//                B = getColorValue(mu,Bs,Bm,Be);
+                R = getColorValue(mu,sliders[0].bars[0],sliders[0].bars[1],sliders[0].bars[2]);
+                G = getColorValue(mu,sliders[1].bars[0],sliders[1].bars[1],sliders[1].bars[2]);
+                B = getColorValue(mu,sliders[2].bars[0],sliders[2].bars[1],sliders[2].bars[2]);
 
                 if (distanceDivide)
                 {
@@ -389,6 +397,11 @@ void draw() {
 
     //boxColor(screen,0,h,w,h+btmBarH-colBarH,0x000000FF);
 
+    //draw the sliders
+    for (i=0;i<3;i++)
+    {
+        sliders[i].drawSlider(screen);
+    }
 
 }
 
@@ -437,6 +450,10 @@ bool init()
 
     SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
+    sliders[0] = Slider(Rs,Rm,Re,0,h,w,colBarH);
+    sliders[1] = Slider(Gs,Gm,Ge,0,h+colBarH,w,colBarH);
+    sliders[2] = Slider(Bs,Bm,Be,0,h+2*colBarH,w,colBarH);
+
     return true;
 }
 
@@ -448,6 +465,8 @@ void clean_up()
 
 int main( int argc, char *argv[] )
 {
+    bool b = false;
+
     srand(SDL_GetTicks());
 
     cout << "argc = " << argc << endl;
@@ -611,6 +630,16 @@ int main( int argc, char *argv[] )
                 mx = event.motion.x;
                 my = event.motion.y;
                 if (draggingZoomBox && my>=h) my=h-1;
+                b = false;
+                for (i=0; i<3; i++)
+                {
+                    sliders[i].updateSlider(mx);
+                    b=b || sliders[i].isSelected();
+                }
+                if (b)
+                {
+                    calcColBar();
+                }
             }
             else if (event.type == SDL_MOUSEBUTTONDOWN)
             {
@@ -618,11 +647,28 @@ int main( int argc, char *argv[] )
                 mdowny = event.button.y;
                 //dragging = true;
                 if (mdowny<h) draggingZoomBox=true;
+
+                for (i=0; i<3; i++)
+                {
+                    sliders[i].handleClick(mdownx,mdowny);
+                }
             }
             else if (event.type == SDL_MOUSEBUTTONUP)
             {
                 mx = event.button.x;
                 my = event.button.y;
+
+                b=false;
+                for (i=0; i<3; i++)
+                {
+                    b=b || sliders[i].isSelected();
+                    sliders[i].deselect();
+                }
+                if (b)
+                {
+                    drawMandelbrot(0,w);
+                }
+
                 if (draggingZoomBox && my>=h) my=h-1;
                 if (mx>mdownx && my>mdowny && draggingZoomBox)
                 {

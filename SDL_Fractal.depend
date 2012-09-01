@@ -19,7 +19,7 @@
 	<sstream>
 	<cmath>
 
-1346385320 source:f:\documents and settings\cameron\my documents\github\fractal_viewer\main.cpp
+1346495922 source:f:\documents and settings\cameron\my documents\github\fractal_viewer\main.cpp
 	"SDL.h"
 	"SDL_gfxPrimitives.h"
 	"SDL_ttf.h"
@@ -29,4 +29,13 @@
 	<fstream>
 	<sstream>
 	<cmath>
+	"Slider.h"
+
+1346483758 source:f:\documents and settings\cameron\my documents\github\fractal_viewer\slider.cpp
+	"Slider.h"
+	"SDL.h"
+	"SDL_gfxPrimitives.h"
+
+1346482958 f:\documents and settings\cameron\my documents\github\fractal_viewer\slider.h
+	"SDL.h"
 
