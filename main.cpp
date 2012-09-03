@@ -208,7 +208,27 @@ void save()
 {
     ofstream myfile;
     myfile.open ("saves.txt",fstream::app);
-    myfile << fixed << setprecision (16) <<"-CX "<<M_centerX<<" -CY "<<M_centerY<<" -MI "<<M_maxIteration<<" -CM "<<M_ColMult<<" -ZM "<<M_zoom<<" -TP "<<transformPower<<" -DD "<<distanceDivide<<" -DA "<<ddA<<" -DB "<<ddB<<endl;
+    myfile << fixed << setprecision (16)
+        <<"-CX "<<M_centerX
+        <<" -CY "<<M_centerY
+        <<" -MI "<<M_maxIteration
+        <<" -CM "<<M_ColMult
+        <<" -ZM "<<M_zoom
+        << setprecision (4)
+        <<" -TP "<<transformPower
+        <<" -DD "<<distanceDivide
+        <<" -DA "<<ddA
+        <<" -DB "<<ddB
+        <<" -RS "<<sliders[0].bars[0]
+        <<" -RM "<<sliders[0].bars[1]
+        <<" -RE "<<sliders[0].bars[2]
+        <<" -GS "<<sliders[1].bars[0]
+        <<" -GM "<<sliders[1].bars[1]
+        <<" -GE "<<sliders[1].bars[2]
+        <<" -BS "<<sliders[2].bars[0]
+        <<" -BM "<<sliders[2].bars[1]
+        <<" -BE "<<sliders[2].bars[2]
+        <<endl;
     myfile.close();
     saves++;
 }
@@ -450,10 +470,6 @@ bool init()
 
     SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
-    sliders[0] = Slider(Rs,Rm,Re,0,h,w,colBarH);
-    sliders[1] = Slider(Gs,Gm,Ge,0,h+colBarH,w,colBarH);
-    sliders[2] = Slider(Bs,Bm,Be,0,h+2*colBarH,w,colBarH);
-
     return true;
 }
 
@@ -468,6 +484,12 @@ int main( int argc, char *argv[] )
     bool b = false;
 
     srand(SDL_GetTicks());
+
+
+    //set color sliders to default values
+    sliders[0] = Slider(Rs,Rm,Re,0,h,w,colBarH);
+    sliders[1] = Slider(Gs,Gm,Ge,0,h+colBarH,w,colBarH);
+    sliders[2] = Slider(Bs,Bm,Be,0,h+2*colBarH,w,colBarH);
 
     cout << "argc = " << argc << endl;
     for(i = 0; i < argc; i++)
@@ -510,6 +532,16 @@ int main( int argc, char *argv[] )
                 ddB = atof(argv[i+1]);
                 cout << "DB: "<<ddB<<endl;
             }
+            else if(!strcmp(argv[i], "-RS")){sliders[0].bars[0] = atof(argv[i+1]); cout << "RS: "<<sliders[0].bars[0]<<endl;}
+            else if(!strcmp(argv[i], "-RM")){sliders[0].bars[1] = atof(argv[i+1]); cout << "RM: "<<sliders[0].bars[1]<<endl;}
+            else if(!strcmp(argv[i], "-RE")){sliders[0].bars[2] = atof(argv[i+1]); cout << "RE: "<<sliders[0].bars[2]<<endl;}
+            else if(!strcmp(argv[i], "-GS")){sliders[1].bars[0] = atof(argv[i+1]); cout << "GS: "<<sliders[1].bars[0]<<endl;}
+            else if(!strcmp(argv[i], "-GM")){sliders[1].bars[1] = atof(argv[i+1]); cout << "GM: "<<sliders[1].bars[1]<<endl;}
+            else if(!strcmp(argv[i], "-GE")){sliders[1].bars[2] = atof(argv[i+1]); cout << "GE: "<<sliders[1].bars[2]<<endl;}
+            else if(!strcmp(argv[i], "-BS")){sliders[2].bars[0] = atof(argv[i+1]); cout << "BS: "<<sliders[2].bars[0]<<endl;}
+            else if(!strcmp(argv[i], "-BM")){sliders[2].bars[1] = atof(argv[i+1]); cout << "BM: "<<sliders[2].bars[1]<<endl;}
+            else if(!strcmp(argv[i], "-BE")){sliders[2].bars[2] = atof(argv[i+1]); cout << "BE: "<<sliders[2].bars[2]<<endl;}
+
     }
 
     //Quit flag
